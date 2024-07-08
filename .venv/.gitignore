@@ -4,3 +4,5 @@ lib
 lib64
 share
 pyvenv.cfg
+src/__pycache__
+src/prompts/__pycache__

@@ -1,9 +1,11 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.chat_message_histories import ChatMessageHistory 
 from langchain_community.llms.ollama import Ollama
+from langchain_community.llms.openai import OpenAI
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings.ollama import OllamaEmbeddings
+from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -28,7 +30,7 @@ def get_embeddings():
     embedding = OllamaEmbeddings(model="llama3", base_url="http://localhost:11434",temperature=0.7)
     return embedding
 
-def set_vector_db(embeddings:OllamaEmbeddings, texts:list):
+def set_vector_db(embeddings, texts:list):
     vector_db = Chroma.from_documents(documents=texts, embedding=embeddings)
     return vector_db
 
@@ -56,7 +58,8 @@ def chat_chain():
     return conversation_chain
 
 def default_llm():
-    llm = Ollama(model="llama3", temperature=0.7, base_url="http://localhost:11434/")
+    # llm = Ollama(model="llama3", temperature=0.7, base_url="http://localhost:11434/")
+    llm = Ollama(model="gemma2", temperature=0.7, base_url="http://localhost:11434/")
     return llm
 
 
@@ -75,7 +78,8 @@ def test_chain():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     texts = text_splitter.split_documents(document)
 
-    embedding = OllamaEmbeddings(model="llama3", base_url="http://localhost:11434",temperature=0.7)
+    # embedding = OllamaEmbeddings(model="llama3", base_url="http://localhost:11434",temperature=0.7)
+    embedding = get_embeddings()
 
     vector_db = Chroma.from_documents(documents=texts, embedding=embedding)
 
@@ -91,6 +95,8 @@ def test_chain():
 
 if __name__ == "__main__":
     conversation_chain = test_chain()
-    response = conversation_chain.invoke({"input": "lets start a battle between bulbasaur and charmander", "chat_history": []})
-    print(response)
+    # response = conversation_chain.invoke({"input": "lets start a battle between bulbasaur and charmander", "chat_history": []})
+
+    for stream in conversation_chain.stream({"input": "lets start a battle between bulbasaur and charmander", "chat_history": []}):
+        print(stream)
 

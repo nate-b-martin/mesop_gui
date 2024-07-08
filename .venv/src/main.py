@@ -2,6 +2,8 @@ import mesop as me
 import mesop.labs as mel
 import chat_model
 import poke_api
+import json
+from langchain_core.runnables.utils import AddableDict
 
 
 # _________ Classes _________
@@ -40,16 +42,27 @@ def pokemon_two_input(e: me.InputEvent) -> str:
 
 def transform(prompt:str, history: list[mel.ChatMessage]) -> str:
     conversation_chain = chat_model.test_chain()
-    print(prompt, history)
+    # print(prompt, history)
     history_string = ""
-    # for m in history:
-    #     history_string += f"{m.role}: {m.content}\n"
-    response = conversation_chain.invoke({
+    response = conversation_chain.stream({
         "input": prompt,
         "chat_history": [{"role": m.role, "content": m.content} for m in history],
     })
-    return response['answer']
 
+    for r in response:
+        dict = AddableDict(r)
+        if dict.get('answer') is not None:
+            yield str(dict.get('answer'))
+        
+
+    # for message in conversation_chain.stream({
+    #     "input": prompt,
+    #     "chat_history": [{"role": m.role, "content": m.content} for m in history],
+    # }):
+    #     print(str(message))
+        
+        
+    
 def load_pokemon_button_one(e: me.ClickEvent) -> None:
     state = me.state(State)
     print(state.pokemon_one)
