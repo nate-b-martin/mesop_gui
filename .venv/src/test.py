@@ -27,7 +27,7 @@ load_dotenv()
 # EMBEDDING_MODEL = "nomic-ai/nomic-embed-text-v1.5-GGUF"
 EMBEDDING_MODEL = "nomic-embed-text-v1.5"
 MODEL = "llama3.1"
-KEY = "sk-proj-byGIwAXxOpI14GRm8JfsT3BlbkFJqsIxeN9ykG2yQMYWzW9I"
+KEY = "your-key"
 
 # Client
 # client = ChatOllama(base_url="http://localhost:11434/", model="llama3.1", temperature=0)
