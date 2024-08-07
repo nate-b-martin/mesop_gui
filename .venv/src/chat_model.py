@@ -1,16 +1,19 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory 
 from langchain_community.llms.ollama import Ollama
-from langchain_community.llms.openai import OpenAI
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.embeddings.ollama import OllamaEmbeddings
-from langchain_community.embeddings.openai import OpenAIEmbeddings
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import FAISS
+from langchain_openai.chat_models import ChatOpenAI 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+# from langchain_chroma import Chroma
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from prompts.prompts import get_qa_prompt, get_battle_announcer_prompt, get_contextualize_q_prompt
+from pprint import pprint
 
 
 def get_loader():
@@ -31,10 +34,10 @@ def get_embeddings():
     return embedding
 
 def set_vector_db(embeddings, texts:list):
-    vector_db = Chroma.from_documents(documents=texts, embedding=embeddings)
+    vector_db = FAISS.from_documents(documents=texts, embedding=embeddings)
     return vector_db
 
-def set_retriever(vector_db:Chroma, llm, retriever ):
+def set_retriever(vector_db, llm, retriever ):
     retriever = vector_db.as_retriever()
     retriever.search_kwargs["k"] = 2
 
@@ -43,23 +46,18 @@ def set_retriever(vector_db:Chroma, llm, retriever ):
     )
 
 def chat_chain():
-    llm = Ollama(model="llama3", temperature=0.7, base_url="http://localhost:11434/")
+    # llm = Ollama(model="gemma2", temperature=0.7, base_url="http://localhost:11434/")
+    llm = ChatOpenAI(
+        model="lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF",
+        temperature=0,
+        api_key="lm-studio",
+        base_url="http://localhost:1234/v1",
+        max_tokens=4096
+    )
 
-    system = "You are a helpful assistant. Please, be brief and concise and to the point. Answer in as few words as possible but still give the user the info they are after. Your name is batman and you are 50 years old"
-
-    human = "Use the conversation memory below to help in answer the most recent query from the user:{memory} USER_QUERY:{text} ASSISTANT:"
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", prompt),
-        ("human", human),
-    ])
-
-    conversation_chain = prompt | llm
-    return conversation_chain
-
-def default_llm():
-    # llm = Ollama(model="llama3", temperature=0.7, base_url="http://localhost:11434/")
-    llm = Ollama(model="gemma2", temperature=0.7, base_url="http://localhost:11434/")
+def default_llm() -> ChatOpenAI:
+    llm = ChatOpenAI(model="llama3.1", temperature=0.7, base_url="http://localhost:1234/v1", api_key="lm-studio")
+    # llm = Ollama(model="gemma2", temperature=0.7, base_url="http://localhost:11434/")
     return llm
 
 
@@ -78,13 +76,17 @@ def test_chain():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     texts = text_splitter.split_documents(document)
 
-    # embedding = OllamaEmbeddings(model="llama3", base_url="http://localhost:11434",temperature=0.7)
-    embedding = get_embeddings()
+    embedding = OllamaEmbeddings(model="nomic-ai/nomic-embed-text-v1.5-GGUF", base_url="http://localhost:1234/v1",temperature=0.7)
+    
 
-    vector_db = Chroma.from_documents(documents=texts, embedding=embedding)
+    vector_db = FAISS.from_documents(documents=texts, embedding=embedding)
+    first_question = "What are all the available pokemon?"
+    docs = vector_db.similarity_search(first_question)
+    len(docs)
+    for doc in docs:
+        pprint(doc.page_content)
 
     retriever = vector_db.as_retriever()
-    retriever.search_kwargs = {"k": 2}
 
     history_aware_retriever = create_history_aware_retriever(
         llm=llm, retriever=retriever,prompt=get_contextualize_q_prompt()
@@ -94,9 +96,6 @@ def test_chain():
     return rag_chain
 
 if __name__ == "__main__":
-    conversation_chain = test_chain()
-    # response = conversation_chain.invoke({"input": "lets start a battle between bulbasaur and charmander", "chat_history": []})
+    test_chain().invoke("What are all the available pokemon?")
 
-    for stream in conversation_chain.stream({"input": "lets start a battle between bulbasaur and charmander", "chat_history": []}):
-        print(stream)
 

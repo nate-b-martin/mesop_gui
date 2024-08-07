@@ -40,12 +40,13 @@ def pokemon_two_input(e: me.InputEvent) -> str:
     state = me.state(State)
     state.pokemon_two= e.value
 
-def transform(prompt:str, history: list[mel.ChatMessage]) -> str:
-    conversation_chain = chat_model.test_chain()
+def transform(input:str, history: list[mel.ChatMessage]) -> str:
+    print(f'User input: {input}')
+    conversation_chain = chat_model.chat_chain()
     # print(prompt, history)
     history_string = ""
     response = conversation_chain.stream({
-        "input": prompt,
+        "input": input,
         "chat_history": [{"role": m.role, "content": m.content} for m in history],
     })
 
