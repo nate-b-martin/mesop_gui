@@ -1,13 +1,11 @@
 import os
 from langchain_openai.chat_models.base import ChatOpenAI
-from langchain_ollama.chat_models import ChatOllama
 from langchain_openai.embeddings import OpenAIEmbeddings 
-from langchain_ollama.embeddings import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders.parsers import PyPDFParser
 from langchain_community.document_loaders.blob_loaders import FileSystemBlobLoader
 from langchain_community.document_loaders.generic import GenericLoader
-from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader
+from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader, PyPDFLoader
 from langchain_community.vectorstores import Chroma, FAISS, SKLearnVectorStore
 from langchain_core.output_parsers.string import StrOutputParser
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -23,39 +21,29 @@ load_dotenv()
 
 # create llm model
 open_ai_llm = ChatOpenAI(
-    model = "lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF",
-    base_url="http://localhost:1234/v1",
-    api_key = "lm-studio",
+    model = "gpt-4o-mini",
 )
-
-ollama_llm = ChatOllama(
-    model = "llama3.1",
-    base_url="http://localhost:11434",
-    temperature=0.3,
-    num_ctx=8096
-)
-
 
 # load docs
 current_dir = os.path.dirname(os.path.abspath(__file__))
-data_path = os.path.join(current_dir, "poke_data")
+data_path = os.path.join(current_dir, "test_data")
 
 loaders = {
-    # "pdf": GenericLoader.from_filesystem(
-    #     path=data_path,
-    #     glob="**/*.pdf",
-    #     parser=PyPDFParser(),
-    # ),
-    # "txt": DirectoryLoader(
-    #     data_path, 
-    #     loader_cls=TextLoader, 
-    #     glob="**/*.txt"
-    #  ),
-    # "json": DirectoryLoader(
-    #     data_path, 
-    #     loader_cls=TextLoader, 
-    #     glob="**/*.json"
-    #  ),
+    "pdf": DirectoryLoader(
+        data_path,
+        glob="**/*.pdf",
+        loader_cls=PyPDFLoader
+    ),
+    "txt": DirectoryLoader(
+        data_path, 
+        loader_cls=TextLoader, 
+        glob="**/*.txt"
+     ),
+    "json": DirectoryLoader(
+        data_path, 
+        loader_cls=TextLoader, 
+        glob="**/*.json"
+     ),
     "csv": DirectoryLoader(data_path, loader_cls=CSVLoader, glob="**/*.csv"),
     }
 
@@ -69,25 +57,27 @@ text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200
 )
 split_text = text_splitter.split_documents(docs)
-for chunk in split_text:
-    print(chunk.page_content)
-    print("-"*100)
+# for chunk in split_text:
+#     print(chunk.page_content)
+#     print("-"*100)
+
+# print(f'number of docs: {len(split_text)}')
+# print(f'split text: {split_text}')
 
 # create embeddings, Have to include check_embedding_ctx_length=False to avoid error
-embeddings = OpenAIEmbeddings(model="nomic-ai/nomic-embed-text-v1.5-GGUF", base_url="http://localhost:1234/v1", api_key="lm-studio", check_embedding_ctx_length=False)
-ollama_embeddings = OllamaEmbeddings(model="nomic-embed-text:latest")
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
 # create vector db
-vector_db = Chroma.from_documents(documents=split_text, embedding=ollama_embeddings)
+vector_db = Chroma.from_documents(documents=split_text, embedding=embeddings)
 
 # create retriever
 retriever = vector_db.as_retriever()
 
 history_aware_retriever = create_history_aware_retriever(
-    llm=ollama_llm, retriever=retriever, prompt=get_contextualize_q_prompt()
+    llm=open_ai_llm, retriever=retriever, prompt=get_contextualize_q_prompt()
 )
 
-question_answer_chain = create_stuff_documents_chain(llm=ollama_llm, prompt=get_qa_prompt(
+question_answer_chain = create_stuff_documents_chain(llm=open_ai_llm, prompt=get_qa_prompt(
     """
     Context: {context} 
     You are a helpful assistant that will use the context to answer the question. If you can't formulate an answer from the context, just say "I don't know" and try to answer the question to your best ability.
@@ -109,19 +99,12 @@ while True:
 
     chat_history.add_user_message(question)
     retrieved_docs = retriever.invoke(question)
-    # for doc in retrieved_docs:
-    #     pprint(doc.metadata['source'])
 
-    # for doc in retrieved_docs:
-    #     pprint(doc.page_content)
+    full_answer = ''
+    for r in rage_chain.stream({"input": question, "context": retrieved_docs, "chat_history": chat_history.messages}):
+        dict = AddableDict(r)
+        if dict.get('answer') is not None:
+            print(str(dict.get('answer')), end='')
+            full_answer += str(dict.get('answer'))
 
-    response = rage_chain.invoke({"input": question, "context": retrieved_docs, "chat_history": chat_history.messages})
-
-    print(type(response))
-    pprint(response['answer'])
-
-    chat_history.add_ai_message(str(response))
-    # for stream in response:
-    #     dict = AddableDict(stream)
-    #     if dict.get('answer') is not None:
-    #         print(str(dict.get('answer')), end='')
+    chat_history.add_ai_message(str(full_answer))
