@@ -12,7 +12,12 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
-from prompts.prompts import get_qa_prompt, get_battle_announcer_prompt, get_contextualize_q_prompt
+from prompts.prompts import get_helpful_assistant_prompt, get_battle_announcer_prompt, get_contextualize_q_prompt
+from model.LocalModel import LocalModel
+from embed.LocalEmbeddings import LocalEmbeddings
+from embed.LoadDocs import LoadDocs 
+from embed.LocalVector import LocalVector 
+import custom_chains.Chains as custom_chains
 from pprint import pprint
 
 
@@ -46,14 +51,18 @@ def set_retriever(vector_db, llm, retriever ):
     )
 
 def chat_chain():
-    # llm = Ollama(model="gemma2", temperature=0.7, base_url="http://localhost:11434/")
-    llm = ChatOpenAI(
-        model="lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF",
-        temperature=0,
-        api_key="lm-studio",
-        base_url="http://localhost:1234/v1",
-        max_tokens=4096
-    )
+    llm = LocalModel()
+    embeddings = LocalEmbeddings()
+    docs = LoadDocs("/home/nathan/Documents/Projects/mesop_gui/.venv/src/poke_data").process_documents()
+    vector = LocalVector(docs, embeddings.get_embeddings())
+    histor_aware_retriever = vector.history_aware_retriever(llm=llm.get_llm())
+
+    chain = custom_chains.retrieval_chain(
+        llm=llm.get_llm(),
+        retriever=histor_aware_retriever,
+        prompt=get_helpful_assistant_prompt()
+        )
+    return chain
 
 def default_llm() -> ChatOpenAI:
     llm = ChatOpenAI(model="llama3.1", temperature=0.7, base_url="http://localhost:1234/v1", api_key="lm-studio")

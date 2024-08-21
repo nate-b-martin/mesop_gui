@@ -1,5 +1,13 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
+def get_helpful_assistant_prompt() -> str:
+    prompt = """
+    Context: {context} 
+    You are a helpful assistant that will use the context to answer the question. If you can't formulate an answer from the context, just say "I don't know" and try to answer the question to your best ability.
+    Question: {input}
+    """
+    return prompt
+
 def get_battle_announcer_prompt() -> str:
     battle_announcer_prompt = """
                 Please comment on the battle status based on the given context. Provide options for each pokemon's move. Track pokemon health after each attack. List available pokemon and their stats for user to choose from by using the given context {context}.
