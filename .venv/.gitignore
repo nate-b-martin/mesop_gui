@@ -8,3 +8,4 @@ src/__pycache__
 src/prompts/__pycache__
 src/poke_data/**
 .env
+db

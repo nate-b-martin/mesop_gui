@@ -225,5 +225,56 @@
             "string-shot",
             "leech-life"
         ]
+    },
+    {
+        "name": "wobbuffet",
+        "id": 202,
+        "height": 13,
+        "weight": 285,
+        "base_experience": 142,
+        "stats": {
+            "hp": 190,
+            "attack": 33,
+            "defense": 58,
+            "special-attack": 33,
+            "special-defense": 58,
+            "speed": 33
+        },
+        "abilities": [
+            "shadow-tag",
+            "telepathy"
+        ],
+        "moves": [
+            "counter",
+            "charm",
+            "mirror-coat",
+            "amnesia"
+        ]
+    },
+    {
+        "name": "teddiursa",
+        "id": 216,
+        "height": 6,
+        "weight": 88,
+        "base_experience": 66,
+        "stats": {
+            "hp": 60,
+            "attack": 80,
+            "defense": 50,
+            "special-attack": 50,
+            "special-defense": 50,
+            "speed": 40
+        },
+        "abilities": [
+            "pickup",
+            "quick-feet",
+            "honey-gather"
+        ],
+        "moves": [
+            "power-up-punch",
+            "rain-dance",
+            "hidden-power",
+            "covet"
+        ]
     }
 ]
