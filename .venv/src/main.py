@@ -2,10 +2,13 @@ import mesop as me
 import mesop.labs as mel
 import chat_model
 from chat.LocalChat import LocalChat
+from chat.OpenChat import OpenChat 
 import poke_api
 import json
 from langchain_core.runnables.utils import AddableDict
-
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 # _________ Classes _________
 @me.stateclass
@@ -42,8 +45,13 @@ def pokemon_two_input(e: me.InputEvent) -> str:
     state.pokemon_two= e.value
 
 def transform(input:str, history: list[mel.ChatMessage]):
-    local_chat = LocalChat(model_name="llama3.1")
-    response = local_chat.run_chain(input, history)
+    chat = ''
+    if os.getenv("LOCAL_MODEL") == "true":
+        chat = LocalChat(model_name="llama3.1")
+    else:
+        chat = OpenChat()
+
+    response = chat.run_chain(input, history)
 
     for r in response:
         dict = AddableDict(r)

@@ -9,3 +9,5 @@ src/prompts/__pycache__
 src/poke_data/**
 .env
 db
+**/__pycache__/
+test_data
