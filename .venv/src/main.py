@@ -46,9 +46,9 @@ def pokemon_two_input(e: me.InputEvent) -> str:
 
 def transform(input:str, history: list[mel.ChatMessage]):
     chat = ''
-    if os.getenv("LOCAL_MODEL") == "true":
+    if os.getenv("LOCAL_MODEL") == "True":
         chat = LocalChat(model_name="llama3.1")
-    else:
+    elif os.getenv("LOCAL_MODEL") == "False":
         chat = OpenChat()
 
     response = chat.run_chain(input, history)

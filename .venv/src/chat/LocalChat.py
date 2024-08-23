@@ -9,7 +9,7 @@ from langchain_core.runnables.utils import AddableDict
 from prompts.prompts import get_helpful_assistant_prompt
 
 class LocalChat:
-    def __init__(self, doc_path="/home/nathan/Documents/Projects/mesop_gui/.venv/src/poke_data", model_name="llama3.1"):
+    def __init__(self, doc_path="/Users/nathan.martin/Documents/projects/mesop/mesop_gui/.venv/src/test_data", model_name="llama3.1"):
         self.chat_history = ChatMessageHistory()
         self.llm = LocalModel(model_name=model_name)
         self.embeddings = LocalEmbeddings()

@@ -17,7 +17,6 @@ class AIEmbeddings():
             model=model,
             api_key=api_key,
             base_url=base_url,
-            check_embedding_ctx_length=False
         )
 
         self.model = model
