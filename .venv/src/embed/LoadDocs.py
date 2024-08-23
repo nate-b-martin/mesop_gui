@@ -1,6 +1,6 @@
 import os
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader, PyPDFLoader
+from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader, PyPDFLoader, UnstructuredPowerPointLoader
 
 class LoadDocs():
     def __init__(self, data_path: str):
@@ -16,6 +16,7 @@ class LoadDocs():
         - Text (.txt)
         - JSON (.json)
         - CSV (.csv)
+        - PowerPoint (.pptx)
         """
 
         loaders = {
@@ -35,6 +36,7 @@ class LoadDocs():
                 glob="**/*.json"
             ),
             "csv": DirectoryLoader(self.data_path, loader_cls=CSVLoader, glob="**/*.csv"),
+            "pptx": DirectoryLoader(self.data_path, loader_cls=UnstructuredPowerPointLoader, glob="**/*.pptx"),
         }
 
         for loader in loaders.values():

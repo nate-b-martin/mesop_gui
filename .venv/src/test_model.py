@@ -1,9 +1,7 @@
 import os
 from model.LocalModel import LocalModel
 from langchain_openai.chat_models.base import ChatOpenAI
-from langchain_ollama.chat_models import ChatOllama
 from langchain_openai.embeddings import OpenAIEmbeddings 
-from langchain_ollama.embeddings import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader, PyPDFLoader
 from langchain_community.vectorstores import Chroma
@@ -20,9 +18,7 @@ load_dotenv()
 
 # create llm model
 open_ai_llm = ChatOpenAI(
-    model = "lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF",
-    base_url="http://localhost:1234/v1",
-    api_key = "lm-studio",
+    model = "gpt-4o-mini",
 )
 
 ollama_llm = ChatOllama(
@@ -39,7 +35,7 @@ local_model = LocalModel()
 
 # load docs
 current_dir = os.path.dirname(os.path.abspath(__file__))
-data_path = os.path.join(current_dir, "poke_data")
+data_path = os.path.join(current_dir, "test_data")
 
 loaders = {
     "pdf": DirectoryLoader(
@@ -70,25 +66,28 @@ text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200
 )
 split_text = text_splitter.split_documents(docs)
-for chunk in split_text:
-    print(chunk.page_content)
-    print("-"*100)
+# for chunk in split_text:
+#     print(chunk.page_content)
+#     print("-"*100)
+
+# print(f'number of docs: {len(split_text)}')
+# print(f'split text: {split_text}')
 
 # create embeddings, Have to include check_embedding_ctx_length=False to avoid error
 # embeddings = OpenAIEmbeddings(model="nomic-ai/nomic-embed-text-v1.5-GGUF", base_url="http://localhost:1234/v1", api_key="lm-studio", check_embedding_ctx_length=False)
 ollama_embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 # create vector db
-vector_db = Chroma.from_documents(documents=split_text, embedding=ollama_embeddings)
+vector_db = Chroma.from_documents(documents=split_text, embedding=embeddings)
 
 # create retriever
 retriever = vector_db.as_retriever()
 
 history_aware_retriever = create_history_aware_retriever(
-    llm=ollama_llm, retriever=retriever, prompt=get_contextualize_q_prompt()
+    llm=open_ai_llm, retriever=retriever, prompt=get_contextualize_q_prompt()
 )
 
-question_answer_chain = create_stuff_documents_chain(llm=ollama_llm, prompt=get_qa_prompt(
+question_answer_chain = create_stuff_documents_chain(llm=open_ai_llm, prompt=get_qa_prompt(
     """
     Context: {context} 
     You are a helpful assistant that will use the context to answer the question. If you can't formulate an answer from the context, just say "I don't know" and try to answer the question to your best ability.
