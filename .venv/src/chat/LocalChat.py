@@ -16,10 +16,10 @@ class LocalChat:
         self.docs = LoadDocs(doc_path).process_documents()
         self.vector = LocalVector(self.docs, self.embeddings.get_embeddings())
         self.retriever = self.vector.get_retriever()
-        self.histor_aware_retriever = self.vector.history_aware_retriever(llm=self.llm.get_llm())
+        self.history_aware_retriever = self.vector.history_aware_retriever(llm=self.llm.get_llm())
         self.chain = custom_chains.retrieval_chain(
                 llm=self.llm.get_llm(),
-                retriever=self.histor_aware_retriever,
+                retriever=self.history_aware_retriever,
                 prompt=get_helpful_assistant_prompt()
             )
 

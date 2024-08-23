@@ -9,7 +9,6 @@ class LocalVector():
         self.vector_store = Chroma.from_documents(
             documents=self.docs,
             embedding=embeddings,
-            persist_directory="db"
         )
         self.retriever = self.vector_store.as_retriever()
 

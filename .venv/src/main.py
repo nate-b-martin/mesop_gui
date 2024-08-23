@@ -42,7 +42,7 @@ def pokemon_two_input(e: me.InputEvent) -> str:
     state.pokemon_two= e.value
 
 def transform(input:str, history: list[mel.ChatMessage]):
-    local_chat = LocalChat(model_name="llama3.1")
+    local_chat = LocalChat(model_name="gemma2")
     response = local_chat.run_chain(input, history)
 
     for r in response:
