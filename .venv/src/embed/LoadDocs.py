@@ -1,6 +1,7 @@
 import os
+import pandas as pd
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader, PyPDFLoader, UnstructuredPowerPointLoader
+from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader, PyPDFLoader, UnstructuredPowerPointLoader, DataFrameLoader
 
 class LoadDocs():
     def __init__(self, data_path: str):
@@ -39,15 +40,45 @@ class LoadDocs():
             "pptx": DirectoryLoader(self.data_path, loader_cls=UnstructuredPowerPointLoader, glob="**/*.pptx"),
         }
 
+        #  handle csv files
+        # csv_files = [f for f in os.listdir(self.data_path) if f.endswith('.csv')]
+        # for csv_file in csv_files:
+        #     file_path = os.path.join(self.data_path, csv_file)
+        #     df = pd.read_csv(file_path)
+            
+        #     # If 'text' column doesn't exist, create it by concatenating all columns
+        #     if 'text' not in df.columns:
+        #         df['text'] = df.apply(lambda row: ' '.join(row.astype(str)), axis=1)
+            
+        #     csv_loader = DataFrameLoader(df, page_content_column='text')
+        #     loaded_docs = csv_loader.load()
+        #     self.docs.extend(loaded_docs)
+
         for loader in loaders.values():
             loaded_docs = loader.load()
             self.docs.extend(loaded_docs)
 
+
     def split_documents(self):
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=200
-        )
-        self.split_text = text_splitter.split_documents(self.docs)
+        splitters = {
+                "default": RecursiveCharacterTextSplitter(
+                    chunk_size=1500, chunk_overlap=300, add_start_index=True
+                ),
+                "pdf": RecursiveCharacterTextSplitter(
+                    chunk_size=2000, chunk_overlap=200, add_start_index=True
+                ),
+                "csv": RecursiveCharacterTextSplitter(
+                    chunk_size=1000, chunk_overlap=100, add_start_index=True
+                )
+            }
+        
+        split_docs = []
+        for doc in self.docs:
+            file_type = doc.metadata.get('source', '').split('.')[-1].lower()
+            splitter = splitters.get(file_type, splitters['default'])
+            split_docs.extend(splitter.split_documents([doc]))
+        
+        self.split_text = split_docs
 
     def print_chunks(self):
         for chunk in self.split_text:

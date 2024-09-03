@@ -54,7 +54,7 @@ def load_pokemon_data():
     pokemon_data_list = [get_pokemon(pokemon_one), get_pokemon(pokemon_two)]
 
     current_dir = os.path.dirname(__file__)
-    test_data_dir = os.path.join(current_dir, "pokemon_data")
+    test_data_dir = os.path.join(current_dir, "test_data")
     os.makedirs(test_data_dir, exist_ok=True)
     with open(os.path.join(test_data_dir, "pokemon_data_list.json"), "w") as f:
         json.dump(pokemon_data_list, f, indent=4)
@@ -62,7 +62,7 @@ def load_pokemon_data():
 def load_pokemon(pokemon):
     data = get_pokemon(pokemon)
     current_dir = os.path.dirname(__file__)
-    test_data_dir = os.path.join(current_dir, "./poke_data")
+    test_data_dir = os.path.join(current_dir, "./test_data")
     os.makedirs(test_data_dir, exist_ok=True)
     pokemon_data_file = os.path.join(test_data_dir, "pokemon_data_list.json")
     if os.path.isfile(pokemon_data_file):

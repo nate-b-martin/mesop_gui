@@ -1,4 +1,3 @@
-
 from langchain_openai.embeddings import OpenAIEmbeddings
 class AIEmbeddings():
     """Class for initializing OpenAI Embeddings"""

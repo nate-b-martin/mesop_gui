@@ -11,3 +11,4 @@ src/poke_data/**
 db
 **/__pycache__/
 test_data
+src/vector_store

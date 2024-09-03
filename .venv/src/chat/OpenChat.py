@@ -1,6 +1,6 @@
 from langchain_community.chat_message_histories import ChatMessageHistory
 from pprint import pprint
-from model.OpenAI import OpenAIModel
+from model.OpenModel import OpenAIModel
 from embed.AIEmbeddings import AIEmbeddings
 from embed.LoadDocs import LoadDocs 
 from embed.LocalVector import LocalVector 

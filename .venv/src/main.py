@@ -1,15 +1,16 @@
 import mesop as me
 import mesop.labs as mel
-import chat_model
+from model.LocalModel import LocalModel
 from chat.LocalChat import LocalChat
 from chat.OpenChat import OpenChat 
 import poke_api
-import json
 from langchain_core.runnables.utils import AddableDict
 from dotenv import load_dotenv
 import os
+
 load_dotenv()
 
+chat_bot = LocalChat(LocalModel().get_llm())
 # _________ Classes _________
 @me.stateclass
 class State:
@@ -20,7 +21,6 @@ class State:
 # _________ Pages _________
 @me.page(path="/")
 def app():
-    s = me.state(State)
     # pokemon one
     me.input(label="Pokemon One", on_input=pokemon_one_input)
 
@@ -45,18 +45,14 @@ def pokemon_two_input(e: me.InputEvent) -> str:
     state.pokemon_two= e.value
 
 def transform(input:str, history: list[mel.ChatMessage]):
-    chat = ''
-    if os.getenv("LOCAL_MODEL") == "True":
-        chat = LocalChat(model_name="llama3.1")
-    elif os.getenv("LOCAL_MODEL") == "False":
-        chat = OpenChat()
-
-    response = chat.run_chain(input, history)
+    response = chat_bot.run_qa_chain(input, history)
 
     for r in response:
         dict = AddableDict(r)
         if dict.get('answer') is not None:
             yield str(dict.get('answer'))
+
+    print(f'history: {history}')
     
 def load_pokemon_button_one(e: me.ClickEvent) -> None:
     state = me.state(State)
