@@ -1,7 +1,11 @@
 import os
 import pandas as pd
+from openpyxl import load_workbook
+from loaders.csv_loader import csv_loader_factory
+from typing import List, Dict
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import CSVLoader, TextLoader, DirectoryLoader, PyPDFLoader, UnstructuredPowerPointLoader, DataFrameLoader
+from langchain_community.document_loaders import TextLoader, DirectoryLoader, PyPDFLoader, UnstructuredPowerPointLoader, DataFrameLoader, UnstructuredExcelLoader
+from langchain.document_loaders import CSVLoader
 
 class LoadDocs():
     def __init__(self, data_path: str):
@@ -36,49 +40,58 @@ class LoadDocs():
                 loader_cls=TextLoader, 
                 glob="**/*.json"
             ),
-            "csv": DirectoryLoader(self.data_path, loader_cls=CSVLoader, glob="**/*.csv"),
+            # "csv": DirectoryLoader(self.data_path, loader_cls=csv_loader_factory, glob="*.csv"),
             "pptx": DirectoryLoader(self.data_path, loader_cls=UnstructuredPowerPointLoader, glob="**/*.pptx"),
+            "csv": DirectoryLoader(
+                self.data_path,
+                glob="**/*.csv",
+                loader_cls=lambda file_path: DataFrameLoader(
+                    pd.DataFrame(pd.read_csv(file_path).apply(lambda row: ' '.join(row.astype(str)), axis=1)),
+                    page_content_column=0
+                )
+            ),
         }
-
-        #  handle csv files
-        # csv_files = [f for f in os.listdir(self.data_path) if f.endswith('.csv')]
-        # for csv_file in csv_files:
-        #     file_path = os.path.join(self.data_path, csv_file)
-        #     df = pd.read_csv(file_path)
-            
-        #     # If 'text' column doesn't exist, create it by concatenating all columns
-        #     if 'text' not in df.columns:
-        #         df['text'] = df.apply(lambda row: ' '.join(row.astype(str)), axis=1)
-            
-        #     csv_loader = DataFrameLoader(df, page_content_column='text')
-        #     loaded_docs = csv_loader.load()
-        #     self.docs.extend(loaded_docs)
 
         for loader in loaders.values():
             loaded_docs = loader.load()
             self.docs.extend(loaded_docs)
 
+    def load_modified_docs(self, file_paths=None):
+        """
+        Load and split documents from the provided file paths.
+        If file_paths is None, use the default data path.
+        """
+        if file_paths is None:
+            self.load_documents()
+        else:
+            self.docs = []
+            for file_path in file_paths:
+                file_type = file_path.split('.')[-1].lower()
+                if file_type == 'pdf':
+                    loader = PyPDFLoader(file_path)
+                elif file_type in ['txt', 'json']:
+                    loader = TextLoader(file_path)
+                elif file_type == 'csv':
+                    loader = DataFrameLoader(pd.read_csv(file_path), page_content_column="text")
+                elif file_type == 'pptx':
+                    loader = UnstructuredPowerPointLoader(file_path)
+                elif file_type == 'xlsx':
+                    loader= DataFrameLoader(pd.read_excel(file_path), page_content_column='text'),
+                else:
+                    print(f"Unsupported file type: {file_type}")
+                    continue
+                
+                loaded_docs = loader.load()
+                self.docs.extend(loaded_docs)
+        
+        self.split_documents()
+        return self.split_text
 
     def split_documents(self):
-        splitters = {
-                "default": RecursiveCharacterTextSplitter(
-                    chunk_size=1500, chunk_overlap=300, add_start_index=True
-                ),
-                "pdf": RecursiveCharacterTextSplitter(
-                    chunk_size=2000, chunk_overlap=200, add_start_index=True
-                ),
-                "csv": RecursiveCharacterTextSplitter(
-                    chunk_size=1000, chunk_overlap=100, add_start_index=True
-                )
-            }
-        
-        split_docs = []
-        for doc in self.docs:
-            file_type = doc.metadata.get('source', '').split('.')[-1].lower()
-            splitter = splitters.get(file_type, splitters['default'])
-            split_docs.extend(splitter.split_documents([doc]))
-        
-        self.split_text = split_docs
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500, chunk_overlap=50, length_function=len
+        )
+        self.split_text = [chunk for doc in self.docs for chunk in splitter.split_documents([doc])]
 
     def print_chunks(self):
         for chunk in self.split_text:
