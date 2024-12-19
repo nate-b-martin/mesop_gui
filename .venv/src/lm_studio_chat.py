@@ -3,14 +3,14 @@ from langchain_openai.chat_models import ChatOpenAI
 from langchain_openai.embeddings.base import OpenAIEmbeddings
 from langchain_chroma.vectorstores import Chroma
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from langchain.retrievers import ParentDocumentRetriever
+from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors.chain_extract import LLMChainExtractor
 from langchain.memory import ConversationBufferMemory
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.prompts import PromptTemplate
 from langchain.callbacks.base import BaseCallbackHandler
 from embed.LoadDocs import LoadDocs
 from vector_utils.utils import find_recently_modified_files
-from typing import List, Tuple, Dict, Any, Generator
+from typing import List, Generator
 import mesop.labs as mel
 from dotenv import load_dotenv
 import os
@@ -31,7 +31,7 @@ class LmStudioChat:
     Class to run a chat with Lm Studio.
     """
 
-    def __init__(self, model_name: str = "lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF"):
+    def __init__(self, model_name: str = "meta-llama_-_llama-3.2-3b-instruct"):
         self.model_name = model_name
         self.stream_handler = MesopStreamHandler()
         self.llm = ChatOpenAI(
@@ -55,7 +55,11 @@ class LmStudioChat:
         self.docs = self.load_docs()
 
         self.vector_store = self.create_vector_store()
-        self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+        self.memory = ConversationBufferMemory(
+            memory_key="chat_history", 
+            output_key="answer",
+            return_messages=True
+            )
         self.qa_chain = self.create_qa_chain()
     
     def get_embeddings(self, text, model:str = "nomic-ai/nomic-embed-text-v1.5-GGUF"):
@@ -90,6 +94,20 @@ class LmStudioChat:
         else:
             print('No files modified in the last 5 minutes.')
 
+    def create_compression_retriever(self):
+        compressor = LLMChainExtractor.from_llm(self.llm)
+
+        base_retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+        
+        compression_retriever = ContextualCompressionRetriever(
+            base_compressor = compressor,
+            base_retriever = base_retriever
+        )
+
+        return compression_retriever
+
+
+
     def create_qa_chain(self):
             prompt_template = """
             Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
@@ -100,13 +118,14 @@ class LmStudioChat:
             Helpful Answer:"""
             PROMPT = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
 
+
             store = InMemoryStore()
             return ConversationalRetrievalChain.from_llm(
                 llm=self.llm,
-            retriever=self.vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 10, "alpha": 0.5}),
+                retriever=self.create_compression_retriever(),
                 memory=self.memory,
                 combine_docs_chain_kwargs={"prompt": PROMPT},
-                return_source_documents=False,
+                return_source_documents=True,
                 chain_type="stuff",
                 verbose="True"
             )

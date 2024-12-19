@@ -1,11 +1,7 @@
-import os
 import pandas as pd
-from openpyxl import load_workbook
-from loaders.csv_loader import csv_loader_factory
 from typing import List, Dict
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import TextLoader, DirectoryLoader, PyPDFLoader, UnstructuredPowerPointLoader, DataFrameLoader, UnstructuredExcelLoader
-from langchain.document_loaders import CSVLoader
+from langchain_community.document_loaders import TextLoader, DirectoryLoader, PyPDFLoader, UnstructuredPowerPointLoader, DataFrameLoader
 
 class LoadDocs():
     def __init__(self, data_path: str):
